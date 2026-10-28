@@ -40,7 +40,7 @@ des fichiers publics d'exemple.
 
 ## Installation et tests
 
-Depuis la racine du dépôt :
+Depuis la racine du dépôt, sous Windows/PowerShell :
 
 ```powershell
 py -m venv .venv
@@ -49,8 +49,16 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 ```
 
-Sous Linux/WSL, remplacez l'activation par `source .venv/bin/activate`. Les tests sont rangés
-avec les TP qu'ils couvrent : `TP1/tests/` et `TP3/tests/`.
+Sous Linux/WSL, exécuter plutôt :
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pytest -q
+```
+
+Les tests sont rangés avec les TP qu'ils couvrent : `TP1/tests/` et `TP3/tests/`.
 
 ## TP 1 — Coffre de fichiers
 
