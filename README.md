@@ -1,38 +1,44 @@
 # EC1 — Ingénierie de la cryptographie
 
-Solution documentée des trois travaux pratiques du module EC1 : chiffrement authentifié,
-infrastructure de clés et déploiement d'un canal TLS avec authentification mutuelle.
-Les comptes rendus expliquent les choix, les limites et les commandes de reproduction; les
-sorties attendues sont distinguées des mesures et captures qui doivent être réalisées sur la
-machine de laboratoire.
+Ce dépôt contient les livrables des trois TP du module EC1. **Commencez par le dossier du TP
+que vous souhaitez évaluer : son code, ses tests et son compte rendu sont regroupés ensemble.**
 
-## Contenu
+## Plan du dépôt
 
-| Fichier ou dossier | Rôle |
-|---|---|
-| [`coffre.py`](./coffre.py) | Format CFR1, Argon2id, HKDF-SHA256, AES-256-GCM et commandes interactives. |
-| [`tests/test_coffre.py`](./tests/test_coffre.py) | Tests des propriétés de confidentialité, intégrité et séparation des clés. |
-| [`pki/`](./pki/) | Configurations OpenSSL et scripts de création, validation, révocation et renouvellement. |
-| [`pki/public/`](./pki/public/) | Certificats et listes de révocation publics, sans clé privée. |
-| [`nginx/ec1.conf`](./nginx/ec1.conf) | Hôte TLS 1.2/1.3 avec authentification mutuelle et contrôle de révocation. |
-| [`surveiller.py`](./surveiller.py) | Supervision des dates d'expiration PEM (codes de sortie 0, 1, 2). |
-| [`tests/test_surveiller.py`](./tests/test_surveiller.py) | Tests des seuils de supervision et des bundles PEM. |
-| [`docs/compte-rendu-tp1.md`](./docs/compte-rendu-tp1.md) | Compte rendu et réponses aux questions du TP 1. |
-| [`docs/compte-rendu-tp2.md`](./docs/compte-rendu-tp2.md) | Compte rendu et réponses aux questions du TP 2. |
-| [`docs/compte-rendu-tp3.md`](./docs/compte-rendu-tp3.md) | Compte rendu et réponses aux questions du TP 3. |
+```text
+TP1/
+  COMPTE-RENDU.md      Explications et réponses aux questions du TP 1
+  coffre.py            Coffre de fichiers chiffrés
+  tests/test_coffre.py Tests du format, du chiffrement et du rechiffrement
+TP2/
+  COMPTE-RENDU.md           Architecture, validations et réponses aux questions
+  pki/
+    racine.cnf, inter.cnf   Profils et paramètres OpenSSL
+    pki.sh                  Création des AC, certificats et CRL
+    verifications.sh        Vérifications positives et négatives
+    public/                 Certificats et CRL publics reproductibles
+TP3/
+  COMPTE-RENDU.md       Mise en œuvre TLS, essais et réponses aux questions
+  nginx/ec1.conf        Configuration du serveur TLS avec mTLS
+  surveiller.py         Surveillance des dates d'expiration
+  renouveler.sh         Renouvellement et retour arrière
+  tests/test_surveiller.py
+requirements.txt        Dépendances Python communes aux TP
+```
+
+Le **TP 3 réutilise la PKI du TP 2**. Les clés privées et l'état de l'autorité sont générés
+localement dans `TP2/pki/work/`, dossier ignoré par Git. Ils ne font pas partie du dépôt et ne
+doivent pas être publiés. Les certificats et listes de révocation dans `TP2/pki/public/` sont
+des fichiers publics d'exemple.
 
 ## Prérequis
 
 - Python 3.10 ou plus récent.
-- OpenSSL 3 pour la PKI et les commandes TLS.
-- Linux (machine, VM ou WSL2 Ubuntu) pour nginx et les scripts d'administration.
-- nginx pour le TP 3; `curl` et Wireshark sont facultatifs pour les observations réseau.
+- OpenSSL 3 pour le TP 2 et les essais TLS.
+- Linux, une VM Linux ou WSL2 Ubuntu pour les scripts PKI et le TP nginx.
+- nginx pour exécuter le serveur du TP 3; `curl`, `nmap` et Wireshark pour les essais facultatifs.
 
-Les scripts PKI vérifient explicitement qu'OpenSSL 3 est utilisé. Les clés privées, demandes
-de signature et bases de l'autorité sont générées dans `pki/work/`, dossier ignoré par Git.
-Ne copiez jamais de clé privée, de mot de passe ou de sauvegarde de clé dans le dépôt.
-
-## 1. Installer et tester le coffre
+## Installation et tests
 
 Depuis la racine du dépôt :
 
@@ -43,123 +49,96 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 ```
 
-Sous Linux/WSL, remplacez l'activation par `source .venv/bin/activate`.
+Sous Linux/WSL, remplacez l'activation par `source .venv/bin/activate`. Les tests sont rangés
+avec les TP qu'ils couvrent : `TP1/tests/` et `TP3/tests/`.
 
-Les mots de passe sont lus sans écho au clavier; ne les passez ni en argument, ni dans une
-variable d'environnement, ni dans un fichier versionné :
+## TP 1 — Coffre de fichiers
+
+Lire d'abord le [compte rendu du TP 1](TP1/COMPTE-RENDU.md), puis consulter
+[`TP1/coffre.py`](TP1/coffre.py) et ses
+[`tests`](TP1/tests/test_coffre.py).
+
+Exécuter depuis la racine avec `python TP1/coffre.py`. Le programme demande le mot de passe de
+manière interactive, sans l'afficher :
 
 ```text
-python coffre.py chiffrer chemin/rapport.txt
-python coffre.py dechiffrer chemin/rapport.txt.cfr --nom-original rapport.txt --sortie rapport-restaure.txt
+python TP1/coffre.py chiffrer chemin/rapport.txt
+python TP1/coffre.py dechiffrer chemin/rapport.txt.cfr --nom-original rapport.txt --sortie rapport-restaure.txt
 ```
 
-Le second appel doit recevoir exactement le nom UTF-8 employé au chiffrement. Le programme
-refuse d'écraser un fichier existant. Le fichier CFR1 commence par un en-tête de 44 octets :
-identifiant (4), paramètres Argon2id (12), sel (16) et nonce (12). L'en-tête et le nom du fichier
-sont authentifiés comme données associées.
+Le fichier CFR1 commence par un en-tête de 44 octets et authentifie le nom d'origine avec
+AES-GCM. La commande de déchiffrement doit donc recevoir exactement le même nom UTF-8.
 
-## 2. Construire et valider la PKI
+## TP 2 — Infrastructure à clés publiques
 
-Dans une distribution Linux/WSL avec OpenSSL 3 :
+Lire le [compte rendu du TP 2](TP2/COMPTE-RENDU.md), puis ouvrir le dossier
+[`TP2/pki/`](TP2/pki/). Depuis la racine, dans Linux/WSL avec OpenSSL 3 :
 
 ```bash
 openssl version
-bash pki/pki.sh
-bash pki/verifications.sh
+bash TP2/pki/pki.sh
+bash TP2/pki/verifications.sh
 ```
 
-Le script crée une racine P-384 (10 ans), un intermédiaire P-256 (5 ans, `pathlen:0` et
-contraintes DNS `tp.local`), un serveur et deux clients P-256 (90 jours), puis un certificat
-hors domaine pour démontrer son rejet à la validation. Il révoque Alice et publie les CRL.
-Les certificats/CRL publics reproductibles sont copiés dans `pki/public/`; les clés et bases
-privées restent dans `pki/work/`. Pour rendre la création automatique et reproductible,
-l'exercice génère toutefois la racine sur la même machine que l'intermédiaire : cela ne
-constitue pas une séparation hors ligne. En production, créer et conserver la racine hors
-ligne, puis ne transférer que son certificat public et les éléments requis pour signer
-l'intermédiaire.
-
-La première exécution crée une base d'autorité nouvelle et n'écrase pas les clés existantes.
-Pour reconstruire un laboratoire vierge, choisir un autre emplacement, par exemple :
+Le script crée une AC racine P-384, une AC intermédiaire P-256 restreinte à `tp.local`, les
+certificats de laboratoire et les listes de révocation. Il vérifie également le rejet d'un nom
+hors domaine et du certificat révoqué d'Alice. La première exécution crée `TP2/pki/work/` et
+ne remplace pas une autorité existante. Pour créer un autre laboratoire isolé, définir
+`PKI_DIR` pour les **deux** commandes :
 
 ```bash
-PKI_DIR="$PWD/pki/work-neuf" bash pki/pki.sh
-PKI_DIR="$PWD/pki/work-neuf" bash pki/verifications.sh
+PKI_DIR="$PWD/TP2/pki/work-neuf" bash TP2/pki/pki.sh
+PKI_DIR="$PWD/TP2/pki/work-neuf" bash TP2/pki/verifications.sh
 ```
 
-Ne supprimez pas un répertoire de PKI contenant des clés utiles sans avoir prévu leur
-sauvegarde hors ligne.
+Les scripts contrôlent OpenSSL 3 et les paramètres critiques. La génération complète est
+automatisée pour le laboratoire; elle ne rend pas la clé racine « hors ligne ». Le compte rendu
+explique cette limite et la séparation à prévoir en production.
 
-## 3. Configurer le serveur TLS et superviser
+## TP 3 — TLS, authentification client et supervision
 
-Sur une VM de laboratoire dédiée :
+Lire le [compte rendu du TP 3](TP3/COMPTE-RENDU.md), puis consulter
+[`TP3/nginx/ec1.conf`](TP3/nginx/ec1.conf),
+[`TP3/surveiller.py`](TP3/surveiller.py) et
+[`TP3/renouveler.sh`](TP3/renouveler.sh). Ce TP dépend des certificats créés au TP 2.
 
-1. Installer nginx, puis copier la chaîne du serveur (certificat serveur suivi de
-   l'intermédiaire), la clé du serveur, la racine publique et `crls.pem` vers
-   `/etc/nginx/tls/`. La clé doit être lisible uniquement par le compte d'administration ou
-   le compte nginx selon le modèle de permissions choisi.
-2. Ajouter `127.0.0.1 www.tp.local` au fichier `/etc/hosts`.
-3. Installer [`nginx/ec1.conf`](./nginx/ec1.conf) comme site nginx, puis exécuter
-   `nginx -t` avant `systemctl reload nginx`.
-4. Émettre ou importer le certificat de Bob dans l'environnement de laboratoire et tester avec
-   `openssl s_client` et `curl` (exemples détaillés dans le compte rendu du TP 3).
-
-Pour surveiller un dossier contenant des certificats PEM :
+Exemple de supervision des certificats publics :
 
 ```bash
-python surveiller.py pki/public
+python TP3/surveiller.py TP2/pki/public
 echo $?
 ```
 
-Codes de retour : `0` (tous les certificats ont au moins 30 jours), `1` (au moins un certificat
-expire dans moins de 30 jours), `2` (au moins un certificat expire dans moins de 7 jours,
-dossier invalide ou erreur de lecture). Un bundle PEM contenant plusieurs certificats est
-analysé certificat par certificat.
+Codes de retour : `0` (tous les certificats expirent dans au moins 30 jours), `1` (au moins un
+expire dans moins de 30 jours), `2` (au moins un expire dans moins de 7 jours ou une erreur
+d'entrée). L'installation nginx et les commandes de démonstration sont décrites dans le compte
+rendu du TP 3; exécutez-les uniquement sur votre machine de laboratoire.
 
-Le renouvellement automatique est volontairement séparé du script de création. Le script
-ci-dessous est un scénario de laboratoire sur une machine isolée contenant nginx et l'état
-privé de l'AC; ne copiez pas `pki/work/` sur un serveur web public :
+Le renouvellement nécessite une PKI privée accessible et les droits d'administration sur le
+serveur de laboratoire :
 
 ```bash
-sudo env PKI_DIR=/chemin/prive/vers/pki/work DEPLOY_DIR=/etc/nginx/tls \
-  bash pki/renouveler.sh
+sudo env PKI_DIR="$PWD/TP2/pki/work" DEPLOY_DIR=/etc/nginx/tls \
+  bash TP3/renouveler.sh
 ```
 
-Le script ne renouvelle qu'à moins de 30 jours de l'expiration, vérifie le nom DNS et la chaîne,
-archive les anciens fichiers dans `/etc/nginx/tls/archive/`, teste nginx puis le recharge. En
-cas d'échec après le début du déploiement, il tente de restaurer les anciens fichiers.
-Planifiez-le quotidiennement avec un minuteur `systemd` ou cron seulement après un essai
-manuel, une revue des droits et la vérification de la procédure de retour arrière.
-Dans une architecture réelle, la racine reste hors ligne et l'émission se fait sur une machine
-de CA protégée; seuls le certificat feuille et la clé serveur nécessaire sont ensuite transférés
-à nginx par un canal authentifié.
+Le script vérifie la chaîne avant le déploiement, n'agit que lorsque le certificat expire dans
+moins de 30 jours, conserve une sauvegarde et teste nginx avant son rechargement. Ne copiez pas
+la clé racine ni l'état privé de l'AC sur un serveur web public. N'ajoutez un minuteur quotidien
+qu'après avoir vérifié manuellement les droits, la rotation de l'AC, les alertes et le retour
+arrière. Le compte rendu indique quelles vérifications doivent encore être faites sur la VM
+(notamment la capture Wireshark et l'essai réel de nginx).
 
-Exemple de planification quotidienne dans la crontab administrateur de la VM de laboratoire
-(adapter les chemins après vérification) :
+## Sécurité du dépôt
 
-```cron
-0 3 * * * PKI_DIR=/opt/ec1/pki/work DEPLOY_DIR=/etc/nginx/tls /bin/bash /opt/ec1/pki/renouveler.sh >> /var/log/ec1-renouvellement.log 2>&1
-```
-
-## Résultats et reproductibilité
-
-Lancer les tests Python avec `python -m pytest -q`. Les validations OpenSSL se rejouent avec
-`pki/verifications.sh`. Les certificats d'exemple prouvent la chaîne, le nom de serveur, l'usage
-client, la contrainte de nom et la révocation; ils ne remplacent pas une capture de poignée de
-main faite sur le serveur de laboratoire. Le TP 3 précise les observations à consigner et les
-limites de ce qui peut être affirmé sans cette capture.
-
-## Sécurité et dépôt GitHub
-
-Avant chaque commit, vérifier :
+Avant de publier, vérifier les fichiers indexés :
 
 ```bash
 git status --short
-git check-ignore pki/work/root/racine.key
-git ls-files '*.key' '*.csr'
+git check-ignore TP2/pki/work/root/racine.key
+git ls-files '*.key' '*.csr' '*.p12' '*.pfx'
 ```
 
-La dernière commande ne doit afficher aucun fichier. Les certificats et CRL sont des données
-publiques; les clés privées, sauvegardes, mots de passe, bases de CA et captures pouvant
-contenir des données personnelles ne le sont pas. Ajouter les fichiers du projet au dépôt
-après revue, puis configurer le dépôt distant GitHub choisi. Aucun dépôt distant ni accès
-GitHub n'étant fourni ici, ces fichiers ne sont pas publiés automatiquement.
+La dernière commande ne doit afficher aucun fichier. Ne versionnez aucune clé privée, CSR,
+phrase secrète, sauvegarde de clé ou capture pouvant contenir des informations personnelles.
+Les fichiers `TP2/pki/public/` ne contiennent que des certificats et CRL publics.

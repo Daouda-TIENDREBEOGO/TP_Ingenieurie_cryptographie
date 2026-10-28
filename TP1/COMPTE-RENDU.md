@@ -2,10 +2,10 @@
 
 ## Objectif et livrables
 
-Le module [`coffre.py`](../coffre.py) protège des octets avec Argon2id, HKDF-SHA256 et
+Le module [`coffre.py`](./coffre.py) protège des octets avec Argon2id, HKDF-SHA256 et
 AES-256-GCM. Il stocke les paramètres nécessaires au déchiffrement dans un format versionné,
 lie le nom du fichier au chiffré et expose une interface de fichier interactive. Les tests sont
-dans [`tests/test_coffre.py`](../tests/test_coffre.py).
+dans [`tests/test_coffre.py`](./tests/test_coffre.py).
 
 ## Conception du format
 
@@ -38,7 +38,7 @@ de remise; consigner plusieurs essais et leur médiane, car le résultat dépend
 la charge :
 
 ```bash
-python -c "from time import perf_counter; from coffre import cle_maitresse; s=b'x'*16; t=perf_counter(); cle_maitresse('mesure locale',s); print(f'{perf_counter()-t:.3f} s')"
+python -c "from time import perf_counter; from TP1.coffre import cle_maitresse; s=b'x'*16; t=perf_counter(); cle_maitresse('mesure locale',s); print(f'{perf_counter()-t:.3f} s')"
 ```
 
 Mesure de cette remise : avec `t=10`, `m=65536 Kio`, `p=4`, cinq dérivations ont pris entre

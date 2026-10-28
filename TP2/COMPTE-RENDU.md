@@ -2,12 +2,12 @@
 
 ## Architecture réalisée
 
-Le script [`pki/pki.sh`](../pki/pki.sh) crée une autorité de certification racine P-384 valide
+Le script [`pki/pki.sh`](./pki/pki.sh) crée une autorité de certification racine P-384 valide
 10 ans, conservée dans l'espace de travail privé, puis une autorité intermédiaire P-256 valide
 5 ans avec `CA:TRUE,pathlen:0` et des contraintes DNS limitées à `tp.local`. L'intermédiaire
 émet des certificats P-256 de 90 jours pour `www.tp.local`, Alice et Bob. Les certificats et
-listes de révocation publiés dans [`pki/public/`](../pki/public/) ne contiennent aucune clé
-privée. Tous les états privés de l'AC sont créés dans `pki/work/`, exclu du dépôt.
+listes de révocation publiés dans [`pki/public/`](./pki/public/) ne contiennent aucune clé
+privée. Tous les états privés de l'AC sont créés dans `TP2/pki/work/`, exclu du dépôt.
 
 **Limite de la maquette :** pour rendre le script autonome, la clé racine est générée sur la
 même machine que l'intermédiaire et n'est pas réellement hors ligne. Ce n'est pas le modèle
@@ -36,7 +36,7 @@ volés. Ne réutiliser cette configuration qu'en laboratoire.
 - **CRL** : `authorityKeyIdentifier` identifie l'émetteur de la liste; la base de l'AC conserve
   les numéros de série et motifs révoqués.
 
-Le script de vérification [`pki/verifications.sh`](../pki/verifications.sh) rejoue les contrôles
+Le script de vérification [`pki/verifications.sh`](./pki/verifications.sh) rejoue les contrôles
 de chaîne, nom d'hôte, usage client et révocation. Le script de génération émet aussi un
 certificat pour `www.example.com` : la signature prouve que la CA a signé la demande, mais la
 validation du chemin doit le rejeter en raison de la contrainte de nom. OpenSSL `ca` copie les
@@ -48,12 +48,12 @@ Une CA de production doit valider les identités et les noms avant de signer.
 
 ```bash
 openssl version
-bash pki/pki.sh
-bash pki/verifications.sh
+bash TP2/pki/pki.sh
+bash TP2/pki/verifications.sh
 ```
 
 OpenSSL doit afficher une version majeure 3. Les commandes de génération créent des clés
-privées uniquement dans `pki/work/`. Les sorties de vérification attendues comprennent
+privées uniquement dans `TP2/pki/work/`. Les sorties de vérification attendues comprennent
 `OK` pour le serveur, Bob et Alice avant vérification de CRL; un échec de nom pour un hôte
 incorrect; un échec de sous-arbre autorisé pour le certificat hors domaine; et `certificate
 revoked` pour Alice avec la CRL. Les refus contrôlés sont des résultats positifs du test.

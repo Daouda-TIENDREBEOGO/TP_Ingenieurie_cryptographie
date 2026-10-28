@@ -2,7 +2,7 @@
 
 ## Configuration et objectif
 
-Le bloc [`nginx/ec1.conf`](../nginx/ec1.conf) active TLS 1.2 et 1.3, exige un certificat client,
+Le bloc [`nginx/ec1.conf`](./nginx/ec1.conf) active TLS 1.2 et 1.3, exige un certificat client,
 vérifie la chaîne jusqu'à la racine de laboratoire, contrôle la CRL et envoie un en-tête HSTS.
 Le serveur doit présenter le certificat de `www.tp.local` suivi de l'intermédiaire, jamais la
 racine. Le client de test est Bob, émis par l'intermédiaire; Alice a été révoquée au TP 2.
@@ -31,11 +31,11 @@ Après création de la PKI, sur une machine Linux de laboratoire :
 
 ```bash
 sudo install -d -m 700 /etc/nginx/tls
-sudo install -m 600 pki/work/leaf/serveur.key /etc/nginx/tls/serveur.key
-cat pki/work/leaf/serveur.crt pki/work/inter/inter.crt > /tmp/serveur_chaine.crt
-sudo install -m 644 /tmp/serveur_chaine.crt pki/work/root/racine.crt \
-  pki/work/crls.pem /etc/nginx/tls/
-sudo install -m 644 nginx/ec1.conf /etc/nginx/sites-available/ec1
+sudo install -m 600 TP2/pki/work/leaf/serveur.key /etc/nginx/tls/serveur.key
+cat TP2/pki/work/leaf/serveur.crt TP2/pki/work/inter/inter.crt > /tmp/serveur_chaine.crt
+sudo install -m 644 /tmp/serveur_chaine.crt TP2/pki/work/root/racine.crt \
+  TP2/pki/work/crls.pem /etc/nginx/tls/
+sudo install -m 644 TP3/nginx/ec1.conf /etc/nginx/sites-available/ec1
 sudo ln -s /etc/nginx/sites-available/ec1 /etc/nginx/sites-enabled/ec1
 echo '127.0.0.1 www.tp.local' | sudo tee -a /etc/hosts
 sudo nginx -t
@@ -47,7 +47,7 @@ le fichier avant de le modifier. Émettre un nouveau certificat pour Bob si sa c
 n'est pas disponible dans la PKI réutilisée :
 
 ```bash
-cd pki/work
+cd TP2/pki/work
 openssl s_client -connect www.tp.local:443 -servername www.tp.local \
   -verify_hostname www.tp.local -CAfile root/racine.crt \
   -cert leaf/bob.crt -key leaf/bob.key -cert_chain inter/inter.crt -brief
@@ -85,21 +85,21 @@ de trafic.
 
 ## Supervision des certificats
 
-[`surveiller.py`](../surveiller.py) parcourt un dossier récursivement et lit un ou plusieurs
+[`surveiller.py`](./surveiller.py) parcourt un dossier récursivement et lit un ou plusieurs
 certificats dans chaque fichier PEM :
 
 - `OK` si tous expirent dans au moins 30 jours : code `0`;
 - `ALERTE` si l'un expire dans moins de 30 jours : code `1`;
 - `CRITIQUE` si l'un expire dans moins de 7 jours, ou en cas d'erreur d'entrée : code `2`.
 
-Exemple : `python surveiller.py pki/public`. L'ordre des contrôles donne priorité au niveau
+Exemple depuis la racine : `python TP3/surveiller.py TP2/pki/public`. L'ordre des contrôles donne priorité au niveau
 critique. Un certificat déjà expiré a un nombre de jours négatif et est donc critique. Les tests
 automatiques créent des certificats éphémères pour vérifier les trois codes sans attendre une
 expiration réelle.
 
 ## Renouvellement automatisé
 
-[`pki/renouveler.sh`](../pki/renouveler.sh) sort sans changement si le certificat serveur a
+[`renouveler.sh`](./renouveler.sh) sort sans changement si le certificat serveur a
 encore au moins 30 jours. Sinon il génère une nouvelle clé P-256 et une CSR, fait signer la CSR
 par l'AC intermédiaire, vérifie chaîne et nom DNS, puis installe la chaîne et la clé. Il conserve
 les anciens fichiers dans `archive/`, exécute `nginx -t`, recharge le service et tente un

@@ -3,7 +3,8 @@ set -eEuo pipefail
 umask 077
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-PKI_DIR="${PKI_DIR:-"$SCRIPT_DIR/work"}"
+PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+PKI_DIR="${PKI_DIR:-"$PROJECT_DIR/TP2/pki/work"}"
 DEPLOY_DIR="${DEPLOY_DIR:-/etc/nginx/tls}"
 OPENSSL_BIN="${OPENSSL_BIN:-openssl}"
 NGINX_BIN="${NGINX_BIN:-nginx}"
@@ -75,10 +76,13 @@ cp -p "$DEPLOY_DIR/serveur_chaine.crt" "$backup_dir/serveur_chaine.crt"
 
 "$OPENSSL_BIN" genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
     -out "$workdir/serveur.key"
-MSYS_NO_PATHCONV=1 "$OPENSSL_BIN" req -new -key "$workdir/serveur.key" \
-    -subj '/CN=www.tp.local' \
-    -addext 'subjectAltName=DNS:www.tp.local,DNS:tp.local' \
-    -out "$workdir/serveur.csr"
+(
+    cd "$workdir"
+    MSYS_NO_PATHCONV=1 "$OPENSSL_BIN" req -new -key serveur.key \
+        -subj '/CN=www.tp.local' \
+        -addext 'subjectAltName=DNS:www.tp.local,DNS:tp.local' \
+        -out serveur.csr
+)
 (
     cd "$PKI_DIR"
     "$OPENSSL_BIN" ca -batch -notext -config inter.cnf -extensions ext_serveur \

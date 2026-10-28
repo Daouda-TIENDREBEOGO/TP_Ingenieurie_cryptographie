@@ -147,5 +147,5 @@ install -m 644 inter/crl/inter.crl root/crl/racine.crl crls.pem "$PUBLIC_DIR/"
 cat leaf/serveur.crt inter/inter.crt > "$PUBLIC_DIR/serveur_chaine.crt"
 
 printf '\nPKI prête dans %s\n' "$PKI_DIR"
-printf 'Les seuls fichiers copiés dans pki/public/ sont des certificats et des CRL publics.\n'
+printf 'Seuls des certificats et des CRL publics ont été copiés dans TP2/pki/public/.\n'
 printf 'Les clés privées restent dans le répertoire de travail non versionné.\n'

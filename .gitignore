@@ -7,11 +7,11 @@ venv/
 *.csr
 *.srl
 *.crl
-!pki/public/*.crl
+!TP2/pki/public/*.crl
 *.pem
-!pki/public/*.pem
+!TP2/pki/public/*.pem
 *.p12
 *.pfx
 *.jks
 .env
-pki/work/
+TP2/pki/work/
