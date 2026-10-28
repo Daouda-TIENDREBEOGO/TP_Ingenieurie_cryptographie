@@ -51,7 +51,8 @@ cd TP2/pki/work
 openssl s_client -connect www.tp.local:443 -servername www.tp.local \
   -verify_hostname www.tp.local -CAfile root/racine.crt \
   -cert leaf/bob.crt -key leaf/bob.key -cert_chain inter/inter.crt -brief
-curl --cacert root/racine.crt --cert leaf/bob.crt --key leaf/bob.key \
+cat leaf/bob.crt inter/inter.crt > /tmp/bob_chaine.crt
+curl --cacert root/racine.crt --cert /tmp/bob_chaine.crt --key leaf/bob.key \
   https://www.tp.local/
 ```
 
@@ -61,8 +62,19 @@ tester TLS 1.1, utiliser `openssl s_client -connect www.tp.local:443 -tls1_1 -br
 connexion doit échouer. La capture Wireshark doit être faite pendant ces essais sur la
 machine de laboratoire; consigner la version, la suite, le groupe d'échange et le résultat de
 validation réellement observés. Ne pas inventer de capture ou de suite négociée.
+Pour `curl`, présenter le certificat client et son intermédiaire concaténés dans un fichier PEM;
+avec le seul certificat feuille, certains clients n'envoient pas l'intermédiaire requis par
+nginx.
 
-Commandes de refus complémentaires :
+Pour tester le refus de la cliente révoquée avec `curl`, lui fournir aussi la chaîne :
+
+```bash
+cat leaf/alice.crt inter/inter.crt > /tmp/alice_chaine.crt
+curl --cacert root/racine.crt --cert /tmp/alice_chaine.crt --key leaf/alice.key \
+  https://www.tp.local/
+```
+
+Cette connexion doit échouer. Autres contrôles négatifs :
 
 ```bash
 openssl s_client -connect www.tp.local:443 -servername www.tp.local \
@@ -82,6 +94,17 @@ dans la poignée de main. Une capture passive sans secrets de session montre don
 `ClientHello` et le `ServerHello`, mais ne permet pas de lire le certificat. En TLS 1.2, le
 certificat du serveur est visible dans une poignée de main complète avant le passage aux clés
 de trafic.
+
+### Résultats du test sous WSL
+
+Avec Ubuntu 26.04, nginx 1.28.3 et OpenSSL 3.5.5, la configuration de ce fichier a été testée
+dans une instance nginx temporaire sur le port `18443`; seules les adresses des certificats et
+le port d'écoute ont été adaptés. La configuration passe `nginx -t`. Bob est accepté en TLS
+1.2 (`ECDHE-ECDSA-AES256-GCM-SHA384`) et en TLS 1.3 (`TLS_AES_256_GCM_SHA384`), avec
+vérification de la chaîne réussie; la réponse HSTS est présente. Un client sans certificat et
+Alice après révocation sont refusés, et TLS 1.1 n'est pas négociable. Le test utilisait les
+certificats et clés générés dans un répertoire temporaire, puis supprimé. L'instance nginx
+temporaire a été arrêtée sans modifier le service nginx ni ses sites existants.
 
 ## Supervision des certificats
 
