@@ -1,0 +1,55 @@
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+dir               = .
+certs             = $dir/inter/certs
+crl_dir           = $dir/inter/crl
+new_certs_dir     = $dir/inter/newcerts
+database          = $dir/inter/index.txt
+serial            = $dir/inter/serial
+crlnumber         = $dir/inter/crlnumber
+certificate       = $dir/inter/inter.crt
+private_key       = $dir/inter/inter.key
+default_days      = 90
+default_crl_days  = 30
+default_md        = sha256
+policy            = policy_loose
+x509_extensions   = ext_serveur
+crl_extensions    = crl_ext
+copy_extensions   = copy
+unique_subject    = no
+email_in_dn       = no
+
+[ policy_loose ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+prompt             = no
+distinguished_name = request_dn
+
+[ request_dn ]
+CN = demande TP
+
+[ ext_serveur ]
+basicConstraints       = critical,CA:FALSE
+keyUsage               = critical,digitalSignature
+extendedKeyUsage       = serverAuth
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid,issuer
+
+[ ext_client ]
+basicConstraints       = critical,CA:FALSE
+keyUsage               = critical,digitalSignature
+extendedKeyUsage       = clientAuth
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid,issuer
+
+[ crl_ext ]
+authorityKeyIdentifier = keyid:always

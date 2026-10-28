@@ -1,0 +1,56 @@
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+dir               = .
+certs             = $dir/root/certs
+crl_dir           = $dir/root/crl
+new_certs_dir     = $dir/root/newcerts
+database          = $dir/root/index.txt
+serial            = $dir/root/serial
+crlnumber         = $dir/root/crlnumber
+certificate       = $dir/root/racine.crt
+private_key       = $dir/root/racine.key
+default_days      = 1825
+default_crl_days  = 30
+default_md        = sha384
+policy            = policy_loose
+x509_extensions   = ext_inter
+crl_extensions    = crl_ext
+copy_extensions   = copy
+unique_subject    = no
+email_in_dn       = no
+
+[ policy_loose ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+prompt             = no
+distinguished_name = root_dn
+x509_extensions    = ext_racine
+
+[ root_dn ]
+C  = BF
+O  = Universite TP
+CN = Racine TP
+
+[ ext_racine ]
+basicConstraints       = critical,CA:TRUE,pathlen:1
+keyUsage               = critical,keyCertSign,cRLSign
+subjectKeyIdentifier   = hash
+
+[ ext_inter ]
+basicConstraints       = critical,CA:TRUE,pathlen:0
+keyUsage               = critical,keyCertSign,cRLSign
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always,issuer
+nameConstraints        = critical,permitted;DNS:tp.local,permitted;DNS:.tp.local
+
+[ crl_ext ]
+authorityKeyIdentifier = keyid:always
